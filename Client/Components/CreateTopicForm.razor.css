@@ -1,0 +1,75 @@
+﻿/* CreateTopicForm.razor.css */
+
+.create-topic {
+    border: 1px solid #ccc;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.go-back {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 15px;
+    font-size: 1em;
+    color: #333;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 20px;
+    text-decoration: none;
+}
+
+    .go-back:hover {
+        background-color: #e2e6ea;
+    }
+
+    .go-back .arrow {
+        font-size: 1.2em;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    .create-topic h2 {
+        margin-top: 0;
+        font-family: 'Arial', sans-serif;
+        font-size: 1.5em;
+        color: #333;
+    }
+
+.create-topic-form {
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px; /* Adjust spacing between form groups */
+}
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 1em;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        box-sizing: border-box; /* Ensure padding and border are included in width calculation */
+    }
+
+    .form-group textarea {
+        height: 120px;
+        resize: vertical; /* Allow vertical resizing of textarea */
+    }
+
+.text-right {
+    text-align: right;
+}

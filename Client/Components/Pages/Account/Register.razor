@@ -1,0 +1,75 @@
+﻿@page "/register"
+@using System.ComponentModel.DataAnnotations
+@inject IAccountService AccountService
+@inject NavigationManager Navigation
+<PageTitle>Register</PageTitle>
+<h1>Register</h1>
+<div class="row">
+    <div class="col-md-4">
+        <StatusMessage Message="@errorMessage" />
+        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator />
+            <h2>Create a new account.</h2>
+            <hr />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Name" class="form-control" autocomplete="name" aria-required="true" placeholder="Luka" />
+                <label for="name">Name</label>
+                <ValidationMessage For="() => Input.Name" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Surname" class="form-control" autocomplete="surname" aria-required="true" placeholder="Takidze" />
+                <label for="surname">Surname</label>
+                <ValidationMessage For="() => Input.Surname" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Username" class="form-control" autocomplete="username" aria-required="true" placeholder="User123" />
+                <label for="username">Username</label>
+                <ValidationMessage For="() => Input.Username" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="email" aria-required="true" placeholder="name@example.com" />
+                <label for="email">Email</label>
+                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="password">Password</label>
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="confirm-password">Confirm Password</label>
+                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+        </EditForm>
+    </div>
+
+</div>
+
+@code {
+    private string? errorMessage;
+    [SupplyParameterFromForm]
+    private RegisterModelDto Input { get; set; } = new();
+
+
+    public async Task RegisterUser()
+    {
+
+        var result = await AccountService.Register(Input);
+
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo($"/confirmation?username={Input.Username}");
+        }
+        else
+        {
+            errorMessage = result.Message;
+        }
+
+    }
+
+
+
+}

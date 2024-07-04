@@ -1,0 +1,26 @@
+﻿<EditForm Model="@newForum" OnValidSubmit="@HandleValidSubmit">
+    <div class="create-forum">
+        <h2>Create a New Forum</h2>
+        <div class="create-forum-form">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <InputText id="title" @bind-Value="newForum.Title" placeholder="Enter Forum title" class="form-control" />
+            </div>
+
+            <div class="form-group text-right">
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+@code {
+    [Parameter] public EventCallback<CreateForumModelDto> OnValidSubmit { get; set; }
+    private CreateForumModelDto newForum = new CreateForumModelDto();
+
+    private async Task HandleValidSubmit()
+    {
+        await OnValidSubmit.InvokeAsync(newForum);
+        newForum = new CreateForumModelDto(); // Reset the form
+
+    }
+}

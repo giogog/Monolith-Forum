@@ -1,0 +1,47 @@
+﻿@page "/confirmation"
+@inject NavigationManager Navigation
+@inject IAccountService AccountService
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-danger" role="alert">
+        @Message
+    </div>
+}
+<button class="btn btn-success" @onclick="GoToLogin">Login</button>
+<button class="btn btn-warning" @onclick="ResendConfirmation">Resend Confirmation</button>
+@code {
+    [Parameter]
+    public string Message { get; set; }
+    private string Username;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("username", out var username))
+        {
+            Username = username;
+        }
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("errormassage", out var errorMassage))
+        {
+            Message = errorMassage;
+        }
+    }
+    private async Task GoToLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+
+    private async Task ResendConfirmation()
+    {
+        // Send POST request to resend confirmation
+        var response = await AccountService.ResendConfiramtionsMail(Username);
+        if (response.IsSuccess)
+        {
+            Message = "A new confirmation email has been sent.";
+        }
+        else
+        {
+            Message = "Failed to resend the confirmation email. Please try again.";
+        }
+    }
+}

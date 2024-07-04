@@ -1,0 +1,116 @@
+﻿@page "/forums-dashboard"
+@using Client.Components.Forums
+@inject IForumService ForumService
+<h3>Topics Dashboard</h3>
+<div class="topic">
+    <div class="topic-buttons">
+        @if (ForumPage == "PendingForums")
+        {
+            <div class="actions">
+                <button @onclick="LoadForums">Show All</button>
+            </div>
+        }
+        else 
+        {
+            <div class="actions">
+                <button @onclick="LoadDeleteForums">Show Deleted</button>
+                <button @onclick="LoadPendingForums">Show Pending</button>
+            </div>
+        }
+
+    </div>
+</div>
+
+@if (Forums != null && Forums.Any())
+{
+    <AuthorizeView>
+        <Authorized>
+            <ForumsComponent Forums="Forums" OnLoadForums="LoadForums" ForumPage="SelectedPage" Page="@ForumPage" />
+            <PaginationNav TotalPages="TotalPages" CurrentPage="SelectedPage" OnPageChanged="PageChange" />
+        </Authorized>
+    </AuthorizeView>
+    
+}
+
+
+
+
+@code {
+
+
+    private int SelectedPage;
+    private int TotalPages;
+    private List<ForumResult>? Forums = new();
+
+    private string ForumPage;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        SelectedPage = 1;
+        await LoadForums();
+    }
+
+
+
+
+
+    private async Task PageChange(int page)
+    {
+        SelectedPage = page;
+        await LoadForums();
+    }
+
+    private async Task LoadForums()
+    {
+       
+        var response = await ForumService.GetAllForums(SelectedPage);
+        if (response.IsSuccess)
+        {
+            ForumPage = "Forums-Dashboard";
+            Forums = response.Result.ToList();
+            TotalPages = response.TotalPages;
+            
+        }
+        else if (response.StatusCode == 404)
+        {
+            Forums = null;
+        }
+    }
+    private async Task LoadPendingForums()
+    {
+
+        var response = await ForumService.GetPendingForums(SelectedPage);
+        if (response.IsSuccess)
+        {
+            ForumPage = "PendingForums";
+            Forums = response.Result.ToList();
+            TotalPages = response.TotalPages;
+            
+        }
+        else if (response.StatusCode == 404)
+        {
+            Forums = null;
+        }
+    }
+    private async Task LoadDeleteForums()
+    {
+        
+        var response = await ForumService.GetDeletedForums(SelectedPage);
+        if (response.IsSuccess)
+        {
+            ForumPage = "DeletedForums";
+            Forums = response.Result.ToList();
+            TotalPages = response.TotalPages;
+            
+        }
+        else if (response.StatusCode == 404)
+        {
+            Forums = null;
+        }
+    }
+
+
+}
+
+

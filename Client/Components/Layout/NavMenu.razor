@@ -1,0 +1,113 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthenticationService AuthService
+@inject IJwtService JwtService
+@inject NavigationManager NavigationManager
+
+@code {
+    private bool isAuthenticated;
+    private string username;
+    private string role; 
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthService.GetAuthenticationStateAsync();
+        var user = authState.User;
+        username = JwtService.GetUsernameFromClaims(user.Claims);
+        role = JwtService.GetRoleFromClaims(user.Claims);
+        isAuthenticated = user.Identity.IsAuthenticated;
+
+
+        AuthenticationStateProvider.AuthenticationStateChanged += async (task) =>
+        {
+            var authState = await task;
+            var user = authState.User;
+
+            isAuthenticated = user.Identity.IsAuthenticated;
+
+            username = user.Identity.Name;
+            role = JwtService.GetRoleFromClaims(user.Claims);
+
+            StateHasChanged();
+        };
+        StateHasChanged();
+
+    }
+
+
+    private void Logout()
+    {
+        AuthService.Logout();
+        NavigationManager.NavigateTo("/");
+    }
+}
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">MyForum</a>
+    </div>
+</div>
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        @if (isAuthenticated)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="user">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> User
+                </NavLink>
+            </div>
+            <!-- Other authenticated links can go here -->
+            @if (role.Contains("Moderator") || role.Contains("Admin"))
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="topics-dashboard">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Topics
+                    </NavLink>
+                </div>
+            }
+            @if (role.Contains("Admin"))
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="forums-dashboard">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Forums
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="users-dashboard">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Users
+                    </NavLink>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="register">
+                    <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="login">
+                    <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                </NavLink>
+            </div>
+        }
+        @if (isAuthenticated)
+        {
+            <!-- Logout link at the bottom -->
+            <div class="nav-item px-3 mt-auto" style="position: absolute; bottom: 0; width: -webkit-fill-available;">
+                <a class="nav-link" href="#" @onclick="Logout">
+                    <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                </a>
+            </div>
+        }
+    </nav>
+</div>

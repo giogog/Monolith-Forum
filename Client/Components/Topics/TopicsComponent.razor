@@ -1,0 +1,230 @@
+﻿@inject IUserService UserService
+@inject IAuthenticationService AuthService
+@inject IJwtService JwtService
+@inject ITopicService TopicService
+@inject IUpvoteService UpvoteService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+@if (ForumTopics != null && ForumTopics.Any())
+{
+    @foreach (var topic in ForumTopics)
+    {
+        <div class="topic">
+            @if (EditTopicBodies.ContainsKey(topic.Id))
+            {
+                <div class="edit-topic">
+                    <textarea class="edit-title" @bind="EditTopicTitles[topic.Id]"></textarea>
+                    <textarea class="edit-body" @bind="EditTopicBodies[topic.Id]"></textarea>
+                    <div class="edit-buttons">
+                        <button class="btn-submit" @onclick="() => SubmitTopicEdit(topic.Id)">Submit</button>
+                        <button class="btn-cancel" @onclick="() => CancelTopicEdit(topic.Id)">Cancel</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <TopicInfoComponent Topic="topic" Page="@Page" />
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="topic-buttons">
+
+                            @if (Page == "PendingTopics")
+                            {
+                                <div class="actions">
+                                    <button @onclick="() => ChangeStateToShow(topic)">Accept</button>
+                                    <button class="delete" @onclick="() => ConfirmDeleteTopic(topic.Id)">Delete</button>
+                                </div>
+                            }
+                            else if (Page == "Topics-Dashboard")
+                            {
+                                <div class="actions">
+                                    @if (Role != null)
+                                    {
+                                        @if (Role.Contains("Moderator") || Role.Contains("Admin"))
+                                        {
+                                            if (topic.State == State.Show)
+                                            {
+                                                <button @onclick="() => ChangeStateToHide(topic)">Hide</button>
+                                            }
+                                            if (topic.State == State.Hide)
+                                            {
+                                                <button @onclick="() => ChangeStateToShow(topic)">Show</button>
+                                            }
+                                            <button class="delete" @onclick="() => ConfirmDeleteTopic(topic.Id)">Delete</button>
+                                        }
+                                    }
+                                </div>
+                            }
+                            else if (Page == "Topics")
+                            {
+                                <div class="actions">
+                                @if (topic.State == State.Show && topic.Status == Status.Active && UserId != topic.UserId)
+                                {
+                                    <div class="votes">
+                                        <button class="arrow-button" @onclick="() => UpVoteTopic(topic.Id)">
+                                            <span class="arrow">&#8593; Up</span>
+                                        </button>
+                                    </div>
+                                }
+                                @if (Role != null)
+                                {
+                                    @if (Role.Contains("Moderator") || Role.Contains("Admin"))
+                                    {
+                                        if (topic.State == State.Show)
+                                        {
+                                            <button @onclick="() => ChangeStateToHide(topic)">Hide</button>
+                                        }
+                                        if (topic.State == State.Hide)
+                                        {
+                                            <button @onclick="() => ChangeStateToShow(topic)">Show</button>
+                                        }
+
+                                    }
+                                }
+
+                                @if (topic.State == State.Show)
+                                {
+                                    <button @onclick="() => NavigateToTopicDetails(topic.Id)">Details</button>
+                                }
+
+                                @if (topic.Status == Status.Active)
+                                {
+                                    if (UserId == topic.UserId)
+                                    {
+                                        <button @onclick="() => StartTopicEdit(new UpdateTopicModelDto(topic.Id, topic.Title, topic.Body))">Edit</button>
+                                        <button class="delete" @onclick="() => ConfirmDeleteTopic(topic.Id)">Delete</button>
+                                    }
+                                }
+                                </div>
+                            }
+                        </div>
+
+                    </Authorized>
+                    <NotAuthorized>
+                        <div class=".topic-buttons">
+                            <div class="actions">
+                                <button @onclick="() => NavigateToTopicDetails(topic.Id)">Details</button>
+                            </div>
+                            
+                        </div>
+                    </NotAuthorized>
+                </AuthorizeView>
+                
+            }
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public IEnumerable<TopicResult> ForumTopics { get; set; }
+    [Parameter] public EventCallback OnLoadTopics { get; set; }
+    [Parameter] public string Page{ get; set; }
+    [Parameter] public string? Url { get; set; }
+
+
+    private Dictionary<int, string> EditTopicTitles = new();
+    private Dictionary<int, string> EditTopicBodies = new();
+    private int UserId;
+    private string? Role;
+    private bool IsAuthenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthService.GetAuthenticationStateAsync();
+        IsAuthenticated = authState.User.Identity.IsAuthenticated;
+        Role = JwtService.GetRoleFromClaims(authState.User.Claims);
+        UserId = IsAuthenticated ? JwtService.GetIdFromClaims(authState.User.Claims) : -1;
+
+    }
+
+    private void NavigateToTopicDetails(int topicId)
+    {
+        if (Page == "User")
+        {
+            Navigation.NavigateTo($"/topic/{topicId}");
+        }
+        else
+        {
+            Navigation.NavigateTo($"{Url}/topic/{topicId}");
+        }
+
+    }
+    private async Task ChangeStateToHide(TopicResult topic)
+    {
+        var result = await TopicService.ChangeTopicState(topic.Id, State.Hide);
+        if (result.IsSuccess)
+        {
+            await OnLoadTopics.InvokeAsync();
+        }
+
+    }
+    private async Task ChangeStateToShow(TopicResult topic)
+    {
+
+        var result = await TopicService.ChangeTopicState(topic.Id, State.Show);
+        if (result.IsSuccess)
+        {
+            await OnLoadTopics.InvokeAsync();
+        }
+    }
+
+    private void NavigateToLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+    private async Task UpVoteTopic(int topicId)
+    {
+        var result = await UpvoteService.Upvote(topicId);
+        if (result.IsSuccess)
+        {
+            await OnLoadTopics.InvokeAsync();
+        }
+
+    }
+
+    private void StartTopicEdit(UpdateTopicModelDto topic)
+    {
+        EditTopicTitles[topic.Id] = topic.Title;
+        EditTopicBodies[topic.Id] = topic.Body;
+    }
+
+    private void CancelTopicEdit(int topicId)
+    {
+        EditTopicBodies.Remove(topicId);
+    }
+
+    private async Task SubmitTopicEdit(int topicId)
+    {
+        if (EditTopicTitles.TryGetValue(topicId, out var editedTitle) && !string.IsNullOrEmpty(editedTitle) && EditTopicBodies.TryGetValue(topicId, out var editedBody) && !string.IsNullOrEmpty(editedBody))
+        {
+            var result = await TopicService.EditTopic(new UpdateTopicModelDto(topicId, editedTitle, editedBody));
+            if (result.IsSuccess)
+            {
+                EditTopicBodies.Remove(topicId);
+                await OnLoadTopics.InvokeAsync();
+            }
+
+        }
+    }
+
+
+    private async Task ConfirmDeleteTopic(int topicId)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this topic?");
+        if (confirmed)
+        {
+            await DeleteTopic(topicId);
+        }
+    }
+
+    private async Task DeleteTopic(int topicId)
+    {
+        var result = await TopicService.DeleteTopic(topicId);
+        if (result.IsSuccess)
+        {
+            await OnLoadTopics.InvokeAsync();
+        }
+
+    }
+}

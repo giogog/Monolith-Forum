@@ -1,0 +1,35 @@
+﻿<div class="topic-header">
+    <h2>@Topic.Title</h2>
+
+    @if (Page == "Topics")
+    {
+        <span class="topic-state">@Topic.Status</span>
+    }
+    else
+    {
+        <span class="topic-state">@Topic.State | @Topic.Status</span>
+
+    }
+</div>
+<p>@Topic.Body</p>
+<div class="topic-footer">
+    <div class="author-info">
+        @if (Page == "User" || Page == "Moderator")
+        {
+            <span class="posted-by">on Forum ~ @Topic.ForumTitle</span>
+            <span class="username">~ @Topic.Username</span>
+        }
+        else if (Page == "Topics")
+        {
+            <span class="posted-by">Forum @Topic.ForumTitle</span>
+            <span class="posted-by">Posted by @Topic.AuthorFullName</span>
+            <span class="username">~ @Topic.Username</span>
+        }
+        <span class="posted-by">Upvotes ~ @Topic.UpvotesNum</span>
+        <span class="posted-date">@Topic.Created.ToString("dd-MM-yyyy HH:mm")</span>
+    </div>
+</div>
+@code{
+    [Parameter] public TopicResult Topic { get; set; }
+    [Parameter] public string Page { get; set; }
+}

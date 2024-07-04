@@ -1,0 +1,40 @@
+﻿<!-- CreateTopicForm.razor -->
+<!-- CreateTopicForm.razor -->
+
+<EditForm Model="@Topic" OnValidSubmit="@SubmitForm">
+    <div class="create-topic">
+        <button class="go-back" @onclick="()=>OnNavigateBack.InvokeAsync()">
+            <span class="arrow">&#8592;</span> <!-- Unicode left arrow -->
+            Go Back
+        </button>
+        <h2>Create a New Topic</h2>
+        <div class="create-topic-form">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <InputText id="title" @bind-Value="Topic.Title" placeholder="Enter topic title" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="body">Body</label>
+                <InputTextArea id="body" @bind-Value="Topic.Body" placeholder="Enter topic body" class="form-control"></InputTextArea>
+            </div>
+
+            <div class="form-group text-right">
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public EventCallback<TopicModelDto> OnValidSubmit { get; set; }
+    [Parameter] public EventCallback OnNavigateBack { get; set; }
+    private TopicModelDto Topic { get; set; } = new TopicModelDto();
+
+    private async Task SubmitForm()
+    {
+        await OnValidSubmit.InvokeAsync(Topic); // Pass the Topic object to the parent component
+        Topic = new TopicModelDto(); // Reset the form after submission
+    }
+}
+

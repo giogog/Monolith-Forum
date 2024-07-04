@@ -1,0 +1,183 @@
+﻿@page "/users-dashboard"
+@inject IUserService UserService
+@inject IAuthenticationService AuthService
+@inject IJwtService JwtService
+
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <section>
+                        <StatusMessage Message="@errorMessage" />
+                        <EditForm Model="Input" method="post" OnValidSubmit="SearchUser" FormName="login">
+                            <DataAnnotationsValidator />
+                            <hr />
+                            <ValidationSummary class="text-danger" role="alert" />
+                            <div class="form-floating mb-3">
+                                <InputText @bind-Value="Input.Search" class="form-control" autocomplete="username" aria-required="true" placeholder="01024854964" />
+                                <label for="search" class="form-label">Search User</label>
+                                <ValidationMessage For="() => Input.Search" class="text-danger" />
+                            </div>
+                            <div>
+                                <button type="submit" class="w-100 btn btn-lg btn-primary">Search</button>
+                            </div>
+                        </EditForm>
+                    </section>
+                </div>
+            </div>
+        </div>
+<AuthorizeView>
+    <Authorized>
+        @if (Users != null && Users.Any())
+        {
+            @foreach (var user in Users)
+            {
+                <div class="user">
+
+                    <div class="user-footer">
+                        <div class="author-info">
+                            <span class="posted-by">Name: @user.Name @user.Surname</span>
+                            <span class="posted-by">Email: @user.Email</span>
+                            <span class="posted-by">Status: @user.Banned</span>
+                            <span class="username">~ @user.UserName</span>
+                        </div>
+                    </div>
+
+                    <div class="user-buttons">
+                        <div class="actions">
+                            @if (user.Banned == Ban.Banned)
+                            {
+                                <button @onclick="() => ChangeBanStatus(user.Id,Ban.NotBanned)">Remove Ban</button>
+                            }
+                            @if (user.Banned == Ban.NotBanned)
+                            {
+                                <button @onclick="() => ChangeBanStatus(user.Id,Ban.Banned)">Ban User</button>
+                            }
+                            @if (user.Roles.Contains("Moderator"))
+                            {
+                                <button @onclick="() => ChangeUserModeratorStatus(user.Id)">Remove User Moderator</button>
+                            }
+                            else
+                            {
+                                <button @onclick="() => ChangeUserModeratorStatus(user.Id)">Give User Moderator</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            <PaginationNav TotalPages="TotalPages" CurrentPage="Page" OnPageChanged="PageChange" />
+        }
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private List<AuthorizedUserResult>? Users = new();
+    private int Page;
+    private int TotalPages;
+    private int UserId;
+    private string? Role;
+    private bool IsAuthenticated;
+    private string errorMessage;
+    private Dictionary<int, string[]> UserRoles;
+
+    [SupplyParameterFromForm]
+    private SearchModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Page = 1;
+        var authState = await AuthService.GetAuthenticationStateAsync();
+        IsAuthenticated = authState.User.Identity.IsAuthenticated;
+        Role = JwtService.GetRoleFromClaims(authState.User.Claims);
+        UserId = IsAuthenticated ? JwtService.GetIdFromClaims(authState.User.Claims) : -1;
+        await LoadUsers();
+    }
+
+    private async Task SearchUser()
+    {
+        var search = Input.Search.ToLower().Trim();
+        var result = Users.Where(u => u.Email.ToLower().Trim() == search).ToList();
+        if (result.Any())
+        {
+            Users = result;
+        }
+        if (!result.Any())
+        {
+            result = Users.Where(u => u.UserName.ToLower().Trim() == search).ToList();
+            if (result.Any())
+            {
+                Users = result;
+            }
+        }
+        if (!result.Any())
+        {
+            var response = await UserService.GetUserWithEmail(search);
+            if (response.IsSuccess)
+            {
+                Users = new List<AuthorizedUserResult> { response.Result };
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(search))
+                {
+                    errorMessage = "User not found";
+                }
+                await LoadUsers();
+            }
+
+
+            
+        }
+    }
+
+    private async Task ChangeBanStatus(int userid, Ban BanStatus)
+    {
+        var response = await UserService.BanUser(userid, BanStatus);
+        if (response.IsSuccess)
+        {
+            await LoadUsers();
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        var response = await UserService.GetUsers(Page);
+        if (response.IsSuccess)
+        {
+            Users = response.Result.ToList();
+            TotalPages = response.TotalPages;
+
+        }
+        else if (response.StatusCode == 404)
+        {
+            Users = null;
+        }
+    }
+
+    private async Task ChangeUserModeratorStatus(int userId)
+    {
+        var response = await UserService.ChangeUserModeratorStatus(userId);
+        if (response.IsSuccess)
+        {
+            await LoadUsers();
+
+        }
+        else if (response.StatusCode == 404)
+        {
+            Users = null;
+        }
+    }
+
+
+
+    private async Task PageChange(int page)
+    {
+        Page = page;
+        await LoadUsers();
+    }
+
+    public record SearchModel
+    {
+        public string Search { get; set; }
+    }
+}

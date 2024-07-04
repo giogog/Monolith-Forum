@@ -1,0 +1,97 @@
+﻿@page "/{forumPage:int?}"
+@using Client.Components.Forums
+@inject IJwtService JwtService
+@inject IJSRuntime JSRuntime;
+@inject IForumService ForumService
+@inject IAuthenticationService AuthService;
+@inject NavigationManager Navigation
+@if (IsInitialized)
+{
+    <AuthorizeView>
+        <Authorized>
+            <CreateForumForm OnValidSubmit="SubmitForum" />
+        </Authorized>
+        <NotAuthorized>
+            <p>Authorize to create Forum</p>
+        </NotAuthorized>
+    </AuthorizeView>
+
+    @if (Forums != null && Forums.Any())
+    {
+        <ForumsComponent ForumPage="forumPage" Forums="Forums" OnLoadForums="LoadForums" Page="Home" />
+        <PaginationNav TotalPages="totalPages" CurrentPage="forumPage" OnPageChanged="NavigateToPage" />
+    }
+
+}
+else
+{
+    <p>...Loading</p>
+}
+
+@code {
+    [Parameter] public int forumPage { get; set; }
+    private List<ForumResult> Forums = new();
+    private int totalPages;
+    private int? userId;
+    private bool isAuthenticated;
+    private bool IsInitialized = false;
+    private string username;
+    private string role;
+    protected override async Task OnInitializedAsync()
+    {
+        if (forumPage == 0)
+            forumPage = 1;
+        var authState = await AuthService.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity.IsAuthenticated;
+        if (isAuthenticated)
+        {
+            userId = JwtService.GetIdFromClaims(authState.User.Claims);
+            username = JwtService.GetUsernameFromClaims(authState.User.Claims);
+            role = JwtService.GetRoleFromClaims(authState.User.Claims);
+        }
+
+        else
+            userId = null;
+
+        await LoadForums();
+        IsInitialized = true;
+    }
+
+
+    private async Task LoadForums()
+    {
+        var response = await ForumService.GetForums(forumPage);
+        if (response.IsSuccess)
+        {
+            Forums = response.Result.ToList();
+            totalPages = response.TotalPages;
+        }
+        else
+        {
+            totalPages = 1;
+        }
+
+    }
+
+    private async Task SubmitForum(CreateForumModelDto createForumModelDto)
+    {
+        var result = await ForumService.CreateForum(createForumModelDto);
+        if (result.IsSuccess)
+        {
+            await LoadForums();
+        }
+        if((int)result.StatusCode == 401)
+        {
+            AuthService.Logout();
+            Navigation.NavigateTo("/login");
+        }
+
+    }
+
+    private async Task NavigateToPage(int page)
+    {
+        forumPage = page;
+        Navigation.NavigateTo($"/{page}");
+        await LoadForums();
+    }
+}

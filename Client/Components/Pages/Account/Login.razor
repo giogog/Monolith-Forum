@@ -1,0 +1,70 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Components.Authorization
+<PageTitle>Log in</PageTitle>
+@inject IAuthenticationService AuthService
+@inject IAccountService AccountService
+@inject IJwtService jwtService
+@inject NavigationManager Navigation
+<h1>Log in</h1>
+<div class="row">
+    <div class="col-md-4">
+        <section>
+            <StatusMessage Message="@errorMessage" />
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator />
+                <hr />
+                <ValidationSummary class="text-danger" role="alert" />
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Username" class="form-control" autocomplete="username" aria-required="true" placeholder="01024854964" />
+                    <label for="username" class="form-label">Username</label>
+                    <ValidationMessage For="() => Input.Username" class="text-danger" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label for="password" class="form-label">Password</label>
+                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                </div>
+                <div>
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                </div>
+                <div>
+                    <button type="button" class="w-100 btn btn-lg btn-link" @onclick="NavigateToForgetPassword">Forgot Password?</button>
+                </div>
+            </EditForm>
+        </section>
+    </div>
+</div>
+@code {
+    private string? errorMessage;
+
+    [SupplyParameterFromForm]
+    private LoginModel Input { get; set; } = new();
+
+
+    public async Task LoginUser()
+    {
+        var loginResult = await AccountService.Login(Input);
+
+        if (loginResult.IsSuccess)
+        {
+
+
+            var token = loginResult.Result.Token;
+            await jwtService.SetAuthToken(token);
+            var claims = jwtService.GetClaimsFromToken(token);
+            AuthService.MarkUserAsAuthenticated(claims.ToList());
+            StateHasChanged();
+            Navigation.NavigateTo("/");
+            
+        }
+        else
+        {
+            errorMessage = loginResult.Message;
+        }
+    }
+    private void NavigateToForgetPassword()
+    {
+        Navigation.NavigateTo("/forget-password");
+    }
+
+}

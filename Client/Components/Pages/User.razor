@@ -1,0 +1,173 @@
+﻿@page "/user"
+@inject IUserService UserService
+@inject IAuthenticationService AuthService
+@inject IJwtService JwtService
+@inject ITopicService TopicService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@if (IsInitialized)
+{
+    <AuthorizeView>
+        <Authorized>
+            <StatusMessage Message="@errorMessage" />
+            @if (!isEditing)
+            {
+                <div class="user">
+                    <div class="user-profile-container">
+                        <h1>@authorizedUserResult.UserName</h1>
+                        <div class="user-details">
+                            <table class="details-table">
+                                <tr>
+                                    <td><strong>Name:</strong></td>
+                                    <td>@authorizedUserResult.Name</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Surname:</strong></td>
+                                    <td>@authorizedUserResult.Surname</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Username:</strong></td>
+                                    <td>@authorizedUserResult.UserName</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>@authorizedUserResult.Email</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <button class="edit-button" @onclick="EnableUserEditing">Edit</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="user">
+                    <form class="user-profile-container">
+                        <h1>Edit Profile</h1>
+                        <table class="edit-table">
+                            <tr>
+                                <td><label for="name">Name:</label></td>
+                                <td><input id="name" type="text" @bind="authorizedUserResult.Name" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="surname">Surname:</label></td>
+                                <td><input id="surname" type="text" @bind="authorizedUserResult.Surname" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="username">Username:</label></td>
+                                <td><input id="username" type="text" @bind="authorizedUserResult.UserName" /></td>
+                            </tr>
+                        </table>
+                        <div class="form-buttons">
+                            <button class="save-button" @onclick="SaveUserEdit">Save</button>
+                            <button class="abandon-button" @onclick="CancelUserEdit">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            }
+            @if (ForumTopics != null && ForumTopics.Any())
+            {
+                <TopicsComponent ForumTopics="ForumTopics" OnLoadTopics="LoadTopics" Page="User" />
+                <PaginationNav TotalPages="TotalPages" CurrentPage="TopicPage" OnPageChanged="PageChange" />
+            }
+
+        </Authorized>
+        <NotAuthorized>
+            <p>You are not authorized to view this page.</p>
+        </NotAuthorized>
+    </AuthorizeView>
+}
+else
+{
+    <p>... Loading</p>
+}
+
+
+@code {
+    public AuthorizedUserResult authorizedUserResult { get; set; } = new AuthorizedUserResult();
+    private IEnumerable<TopicResult>? ForumTopics;
+    private int TopicPage;
+    private int TotalPages;
+    private string? errorMessage;
+    private int userId;
+    private bool isEditing = false;
+    private bool IsInitialized = false;
+    protected override async Task OnInitializedAsync()
+    {
+        TopicPage = 1;
+        await LoadPage();
+        IsInitialized = true;
+    }
+
+    private async Task LoadPage()
+    {
+
+        await LoadUserData();
+        await LoadTopics();
+    }
+
+    private async Task LoadUserData()
+    {
+        var authState = await AuthService.GetAuthenticationStateAsync();
+        if (authState.User.Identity.IsAuthenticated)
+        {
+            var user = authState.User;
+            userId = JwtService.GetIdFromClaims(user.Claims);
+            var response = await UserService.GetAuthorizedUserData(userId);
+            if (response.IsSuccess)
+            {
+                authorizedUserResult = response.Result;
+            }
+        }
+    }
+
+    private async Task LoadTopics()
+    {
+        var response = await TopicService.GetTopicsWithUser(userId, TopicPage);
+        if (response.IsSuccess)
+        {
+            ForumTopics = response.Result.OrderByDescending(t => t.UpvotesNum).ThenByDescending(t => t.Created).ToList();
+            TotalPages = response.TotalPages;
+        }
+        else if (response.StatusCode == 404)
+        {
+            ForumTopics = null;
+        }
+
+    }
+
+    private async Task PageChange(int page)
+    {
+        TopicPage = page;
+        await LoadTopics();
+    }
+
+    private void EnableUserEditing()
+    {
+        isEditing = true;
+    }
+
+    private async Task SaveUserEdit()
+    {
+        var response = await UserService.UpdateAuthrizedUserData(userId, authorizedUserResult);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.Message;
+            await LoadPage();
+            return;
+        }
+
+        await LoadUserData(); // Refresh the user data after save
+        isEditing = false;
+    }
+
+    private void CancelUserEdit()
+    {
+        isEditing = false;
+    }
+
+
+
+
+}
+

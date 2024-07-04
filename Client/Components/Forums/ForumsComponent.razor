@@ -1,0 +1,253 @@
+﻿@inject IJwtService JwtService
+@inject IJSRuntime JSRuntime;
+@inject IForumService ForumService
+@inject IAuthenticationService AuthService;
+@inject NavigationManager Navigation
+@if (Forums != null && Forums.Any())
+{
+    @foreach (var forum in Forums)
+    {
+
+        <div class="forum">
+            @if (editTopicTitles.ContainsKey(forum.Id))
+            {
+                <div class="edit-forum">
+                    <textarea class="edit-title" @bind="editTopicTitles[forum.Id]"></textarea>
+                    <div class="edit-buttons">
+                        <button class="btn-submit" @onclick="() => SubmitEditForum(forum.Id)">Submit</button>
+                        <button class="btn-cancel" @onclick="() => CancelEditForum(forum.Id)">Cancel</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+
+                <ForumInfo Forum="forum" Page="@Page"/>
+                <div class="forum-buttons">
+                    <AuthorizeView>
+                        <Authorized>
+                            @if (Page == "PendingForums")
+                            {
+                                <div class="actions">
+                                    <button @onclick="() => ChangeStateToShow(forum)">Accept</button>
+                                    <button class="delete" @onclick="() => ConfirmDeleteForum(forum.Id,true)">Delete</button>
+                                </div>
+
+                            }
+                            else if (Page == "DeletedForums")
+                            {
+                                @if (Role != null)
+                                {
+                                    @if (Role.Contains("Admin"))
+                                    {
+                                        <div class="actions">
+                                            <button @onclick="() => ChangeStatus(forum,Status.Active)">Refuse</button>
+                                            <button class="delete" @onclick="() => ConfirmDeleteForum(forum.Id,true)">Delete</button>
+                                        </div>
+                                    }
+
+                                }
+
+
+                            }
+                            else if (Page == "Forums-Dashboard")
+                            {
+                                <div class="actions">
+                                    @if (forum.Status == Status.Active)
+                                    {
+                                        <button @onclick="() => ChangeStatus(forum,Status.Inactive)">Deactivate</button>
+                                    }
+                                    @if (forum.Status == Status.Inactive)
+                                    {
+                                        <button @onclick="() => ChangeStatus(forum,Status.Active)">Activate</button>
+                                    }
+                                    @if (forum.State == State.Show)
+                                    {
+                                        <button @onclick="() => ChangeStateToHide(forum)">Hide</button>
+                                    }
+                                    @if (forum.State == State.Hide)
+                                    {
+                                        <button @onclick="() => ChangeStateToShow(forum)">Show</button>
+                                    }
+                                    <button @onclick="() => NavigateToForum(forum.Id)">Go to Forum</button>
+                                    <button class="delete" @onclick="() => ConfirmDeleteForum(forum.Id,true)">Delete</button>
+                                </div>
+                            }
+                            else if (Page == "Home")
+                            {
+                                <div class="actions">
+                                    @if (Role != null)
+                                    {
+                                        @if (Role.Contains("Admin"))
+                                        {
+                                            @if (forum.Status == Status.Active)
+                                            {
+                                                <button @onclick="() => ChangeStatus(forum,Status.Inactive)">Deactivate</button>
+                                            }
+                                            @if (forum.Status == Status.Inactive)
+                                            {
+                                                <button @onclick="() => ChangeStatus(forum,Status.Active)">Activate</button>
+                                            }
+                                            @if (forum.State == State.Show)
+                                            {
+                                                <button @onclick="() => ChangeStateToHide(forum)">Hide</button>
+                                            }
+                                            @if (forum.State == State.Hide)
+                                            {
+                                                <button @onclick="() => ChangeStateToShow(forum)">Show</button>
+                                            }
+
+                                        }
+                                        @if (forum.Status == Status.Active || Role.Contains("Admin"))
+                                        {
+                                            @if (UserId == forum.UserId || Role.Contains("Admin"))
+                                            {
+                                                <button @onclick="() => StartEditingForum(new UpdateForumDto(forum.Id,forum.Title))">Edit</button>
+                                                <button class="delete" @onclick="() => ConfirmDeleteForum(forum.Id,false)">Delete</button>
+                                            }
+                                        }
+
+                                    }
+
+                                    <button @onclick="() => NavigateToForum(forum.Id)">Go to Forum</button>
+                                </div>
+                            }
+                        </Authorized>
+                        <NotAuthorized>
+                            <div class="forum-buttons">
+                                <div class="actions">
+                                    <button @onclick="() => NavigateToForum(forum.Id)">Go to Forum</button>
+                                </div>
+                            </div>
+                            
+                        </NotAuthorized>
+                    </AuthorizeView>
+
+                </div>
+
+            }
+
+        </div>
+    }
+}
+                            
+@code {
+    [Parameter] public List<ForumResult> Forums { get; set; }
+    [Parameter] public EventCallback OnLoadForums { get; set; }
+    [Parameter] public int ForumPage {get;set;}
+    [Parameter] public string Page { get; set; }
+    private Dictionary<int, string> editTopicTitles = new Dictionary<int, string>();
+
+
+    private int UserId;
+    private string Role;
+    private bool IsAuthenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthService.GetAuthenticationStateAsync();
+        IsAuthenticated = authState.User.Identity.IsAuthenticated;
+        Role = JwtService.GetRoleFromClaims(authState.User.Claims);
+        UserId = IsAuthenticated ? JwtService.GetIdFromClaims(authState.User.Claims) : -1;
+    }
+
+    private async Task ChangeStateToHide(ForumResult forum)
+    {
+        var result = await ForumService.ChangeForumState(forum.Id, State.Hide);
+        if (result.IsSuccess)
+        {
+            await OnLoadForums.InvokeAsync();
+
+        }
+
+    }
+    private async Task ChangeStateToShow(ForumResult forum)
+    {
+
+        var result = await ForumService.ChangeForumState(forum.Id, State.Show);
+        if (result.IsSuccess)
+        {
+            await OnLoadForums.InvokeAsync();
+
+        }
+    }
+
+    private async Task ChangeStatus(ForumResult forum, Status status)
+    {
+
+        var result = await ForumService.ChangeForumStatus(forum.Id, status);
+        if (result.IsSuccess)
+        {
+            await OnLoadForums.InvokeAsync();
+
+        }
+    }
+
+    private void StartEditingForum(UpdateForumDto updateforumDto)
+    {
+        editTopicTitles[updateforumDto.Id] = updateforumDto.Title;
+    }
+
+    private async Task CancelEditForum(int topicId)
+    {
+        editTopicTitles.Remove(topicId);
+    }
+
+
+    private async Task SubmitEditForum(int topicId)
+    {
+        if (editTopicTitles.TryGetValue(topicId, out var editedBody) && !string.IsNullOrEmpty(editedBody))
+        {
+            var result = await ForumService.UpdateForum(new UpdateForumDto(topicId, editedBody));
+            if (result.IsSuccess)
+            {
+                editTopicTitles.Remove(topicId);
+                await OnLoadForums.InvokeAsync();
+            }
+            else
+            {
+                editTopicTitles[topicId] = result.Message;
+            }
+        }
+    }
+
+
+    private async Task ConfirmDeleteForum(int forumId,bool isAdmin)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this Forum?");
+        if (confirmed)
+        {
+            if (isAdmin)
+            {
+                await DeleteForum(forumId);
+            }
+            else
+            {
+                await DeleteForumFromUser(forumId);
+            }
+
+        }
+    }
+    private async Task DeleteForum(int forumid)
+    {
+        var response = await ForumService.DeleteForum(forumid);
+        if (response.IsSuccess)
+        {
+            await OnLoadForums.InvokeAsync();
+        }
+    }
+    private async Task DeleteForumFromUser(int forumid)
+    {
+        var response = await ForumService.DeleteForumFromUser(forumid);
+        if (response.IsSuccess)
+        {
+            await OnLoadForums.InvokeAsync();
+        }
+    }
+
+
+    private void NavigateToForum(int forumId)
+    {
+        Navigation.NavigateTo($"{ForumPage}/{forumId}/topics");
+    }
+}

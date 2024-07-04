@@ -1,0 +1,95 @@
+﻿@page "/topics-dashboard"
+@inject ITopicService TopicService
+<h3>Topics Dashboard</h3>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="topic">
+            <div class="topic-buttons">
+                @if (TopicsPage == "PendingTopics")
+                {
+                    <div class="actions">
+                        <button @onclick="LoadTopics">Show All</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="actions">
+                        <button @onclick="LoadPendingTopics">Show Pending</button>
+                    </div>
+                }
+
+            </div>
+        </div>
+
+        @if (Topics != null && Topics.Any())
+        {
+            <TopicsComponent ForumTopics="Topics" OnLoadTopics="LoadTopics" Page="@TopicsPage" />
+            <PaginationNav TotalPages="TotalPages" CurrentPage="SelectedPage" OnPageChanged="PageChange" />
+        }
+
+    </Authorized>
+</AuthorizeView>
+
+
+
+
+@code {
+
+
+    private int SelectedPage;
+    private int TotalPages;
+    private List<TopicResult>? Topics  = new ();
+    private string TopicsPage;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        SelectedPage = 1;
+        await LoadTopics();
+    }
+
+    private async Task LoadTopics()
+    {
+        TopicsPage = "Topics-Dashboard";
+        var response = await TopicService.GetAllTopics(SelectedPage);
+        if (response.IsSuccess)
+        {
+            Topics = response.Result.OrderByDescending(t => t.UpvotesNum).ThenByDescending(t => t.Created).ToList();
+            TotalPages = response.TotalPages;   
+        }
+        else if (response.StatusCode == 404)
+        {
+            Topics = null;
+        }
+    }
+
+    private async Task LoadPendingTopics()
+    {
+        TopicsPage = "PendingTopics";
+        var response = await TopicService.GetPendingTopics(SelectedPage);
+        if (response.IsSuccess)
+        {
+            Topics = response.Result.OrderByDescending(t => t.Created).ToList();
+            TotalPages = response.TotalPages;
+            
+        }
+        else if (response.StatusCode == 404)
+        {
+            Topics = null;
+        }
+    }
+
+
+
+
+    private async Task PageChange(int page)
+    {
+        SelectedPage = page;
+        await LoadTopics();
+    }
+
+
+}
+
+

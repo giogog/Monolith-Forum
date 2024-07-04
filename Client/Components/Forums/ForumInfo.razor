@@ -1,0 +1,23 @@
+﻿<div class="forum-header">
+    <h2>@Forum.Title</h2>
+
+    @if (Page == "Home")
+    {
+        <span class="topic-state">@Forum.Status</span>
+    }
+    else
+    {
+        <span class="topic-state">@Forum.State | @Forum.Status</span>
+
+    }
+</div>
+<div class="forum-footer">
+    <div class="author-info">
+        <span class="username">~ @Forum.Username</span>
+        <span class="posted-date">@Forum.Created.ToString("dd-MM-yyyy HH:mm")</span>
+    </div>
+</div>
+@code {
+    [Parameter] public ForumResult Forum { get; set; }
+    [Parameter] public string Page { get; set; }
+}

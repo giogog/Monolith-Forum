@@ -1,0 +1,80 @@
+﻿@page "/{ForumPage:int}/{ForumId:int}/topics/{TopicPage:int?}"
+@inject ITopicService TopicService
+@inject IAuthenticationService AuthService
+@inject IJwtService JwtService
+@inject ICommentService CommentService
+@inject IUpvoteService UpvoteService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+
+
+<PageTitle>Forum Topics</PageTitle>
+<AuthorizeView>
+    <Authorized>
+        <CreateTopicForm OnValidSubmit="SubmitNewTopic" OnNavigateBack="NavigateBack" />
+    </Authorized>
+    <NotAuthorized>
+        <p>Please log in to create a topic.</p>
+    </NotAuthorized>
+</AuthorizeView>
+@if (ForumTopics != null && ForumTopics.Any())
+{
+    <TopicsComponent ForumTopics="ForumTopics" OnLoadTopics="LoadTopics" Page="Topics" Url="@Url" />
+    <PaginationNav TotalPages="TotalPages" CurrentPage="TopicPage" OnPageChanged="PageChange" />
+}
+
+
+@code {
+    [Parameter] public int ForumPage { get; set; }
+    [Parameter] public int ForumId { get; set; }
+    [Parameter] public int TopicPage { get; set; }
+
+    private IEnumerable<TopicResult>? ForumTopics;
+    private int TotalPages;
+    private string Url;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TopicPage == 0)
+            TopicPage = 1;
+        Url = $"/{ForumPage}/{ForumId}/topics/{TopicPage}";
+        await LoadTopics();
+    }
+
+    private async Task LoadTopics()
+    {
+        var response = await TopicService.GetTopicsByForum(ForumId, TopicPage);
+        if (response.IsSuccess)
+        {
+            ForumTopics = response.Result.OrderByDescending(t => t.UpvotesNum).ThenByDescending(t => t.Created).ToList();
+            TotalPages = response.TotalPages;
+
+        }
+        else if (response.StatusCode == 404)
+        {
+            ForumTopics = null;
+        }
+    }
+
+    private async Task PageChange(int page)
+    {
+        TopicPage = page;
+        await LoadTopics();
+    }
+
+    private async Task SubmitNewTopic(TopicModelDto newTopic)
+    {
+        newTopic.ForumId = ForumId;
+        var result = await TopicService.AddTopic(newTopic);
+        if (result.IsSuccess)
+        {
+            await LoadTopics();
+        }
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo($"/{ForumPage}");
+    }
+}
