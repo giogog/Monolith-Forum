@@ -7,7 +7,7 @@ namespace API.Controllers;
 
 public class UpvoteController(IServiceManager _serviceManager) : ApiController(_serviceManager)
 {
-    [Authorize(Roles = "User")]
+    [Authorize]
     [HttpPost("{topicId}")]
     public async Task<IActionResult> UpVote(int topicId)
     {

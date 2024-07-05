@@ -34,7 +34,7 @@
             <TopicInfoComponent Topic="Topic" Page="Topics" />
             <div class="topic-buttons">
                 <div class="actions">
-                    @if (Topic.State == State.Show)
+                    @if (Topic.State == State.Show && UserId != Topic.UserId)
                     {
                         <div class="votes">
                             <button class="arrow-button" @onclick="() => UpVoteTopic(Topic.Id)">
