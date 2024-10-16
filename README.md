@@ -1,14 +1,22 @@
-This project contains both back-end part with asp net core web api, which is build with clean architecture, and front-end part with Blazor. 
-It's a online forum, where you can create your forum like "Politics in my country" and than you and other users will be able to create topics about that.
-Authorized user is able to upvote relevant and likable Topic, so that it will appear at the Top.
-each Topics have comment section with reply system.
-Project have three Roles - Admin, Moderator, User. Admin Creates and approves Forums and Topics, Moderator can only approve Topics. User can only create Forums and Topics and comment on topic.
-As I said Project's back-end part uses clean architecture. for database connection it uses Entity framework, which is configured in Infrastructe layer and injected in API/Extensions/ServiceExtension.cs
-Project has seperate layers for abstraction which is called Contracts. I am using IUnitOfWork for Services and repositories seperately, IServiceManager is implemented in Application layer, IRepositoryManager is implemented in Infrastrucre Layer.
-I've build Services in application Layer which works for creating, reading ,updating and deleting entity data in database.
-I've configured GlobalExceptionHandler middleware as well. you will see Custume Exception in layers and GlobalExceptionHandler in API layer.
-Api has Microsoft Identity configuration, User is derieved class of IdentityUser<int> and Role from IdenitityRole, Identity is configured in ServiceExtension.cs in API layer(other services are also configured and injected here) 
-Authothentication is done by Jwt token you can see it's configuration as well.
-Authentication and Authorization has seperate service and controller, in addition I've configured Email Verification system alongside Authentication. this system has seperate service, and email sender which is configured in infrastrucure layer.
+This project is a comprehensive web application that includes both a back-end built with ASP.NET Core Web API and a front-end developed using Blazor. It serves as an online forum platform where users can create and join forums, such as "Politics in My Country," and engage in discussions by creating topics within those forums. Authorized users can upvote relevant and engaging topics, making them more visible by placing them at the top of the list. Each topic features a comment section with a reply system, allowing for detailed discussions.
 
+Roles
+The project defines three roles:
 
+Admin: Can create and approve forums and topics.
+Moderator: Can approve topics.
+User: Can create forums, topics, and comment on topics.
+Architecture
+The back-end follows a clean architecture design:
+
+Entity Framework is used for database connectivity, configured in the Infrastructure layer, and injected through API/Extensions/ServiceExtension.cs.
+Contracts: Separate layers for abstraction, providing clear boundaries between services and repositories.
+Service and Repository Management: IServiceManager is implemented in the Application layer, while IRepositoryManager is implemented in the Infrastructure layer.
+Application Layer
+The Application layer contains services that handle CRUD (Create, Read, Update, Delete) operations on entities in the database. Global exception handling is set up through a custom middleware (GlobalExceptionHandler), and you will find custom exceptions within various layers of the project.
+
+Authentication and Authorization
+The project uses JWT tokens for authentication, with a dedicated service and controller for managing authentication and authorization. Microsoft Identity is configured, where the User class is derived from IdentityUser, and Role is derived from IdentityRole. The Identity setup, along with other service configurations, can be found in ServiceExtension.cs in the API layer.
+
+Email Verification
+An Email Verification system is integrated alongside authentication. This system has a dedicated service and an email sender component, configured within the Infrastructure layer.
