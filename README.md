@@ -3,9 +3,12 @@ This project is a comprehensive web application that includes both a back-end bu
 Roles
 The project defines three roles:
 
-Admin: Can create and approve forums and topics.
-Moderator: Can approve topics.
-User: Can create forums, topics, and comment on topics.
+Admin: Can create and approve forums and topics, also can manage users, like ban user or give moderator Role, also can delete or hide topics and forums.
+
+Moderator: Can approve topics, also can hide topics.
+
+User: Can create forums, topics, and comment on topics, upvote liked topic. can check profile and sees all the topics created by him(all user activities can done by admin and moderator !!!)
+
 Architecture
 The back-end follows a clean architecture design:
 
