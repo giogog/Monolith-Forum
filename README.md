@@ -10,8 +10,8 @@ Moderator: Can approve topics, also can hide topics.
 User: Can create forums, topics, and comment on topics, upvote liked topic. can check profile and sees all the topics created by him(all user activities can done by admin and moderator !!!)
 
 Architecture
-The back-end follows a clean architecture design:
 
+The back-end follows a clean architecture design:
 Entity Framework is used for database connectivity, configured in the Infrastructure layer, and injected through API/Extensions/ServiceExtension.cs.
 Contracts: Separate layers for abstraction, providing clear boundaries between services and repositories.
 Service and Repository Management: IServiceManager is implemented in the Application layer, while IRepositoryManager is implemented in the Infrastructure layer.
